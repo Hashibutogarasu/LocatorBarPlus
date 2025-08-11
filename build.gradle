@@ -121,7 +121,6 @@ publisher {
     setDisplayName(mod_name)
     setGameVersions(project.minecraft_version)
     setLoaders("fabric")
-    setIsManualRelease(true)
     setArtifact(jar)
     setPlatformArtifact("modrinth", jar)
     setDisableMalwareScanner(true)
