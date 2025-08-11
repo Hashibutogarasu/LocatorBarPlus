@@ -1,0 +1,136 @@
+//file:noinspection GroovyAssignabilityCheck
+//file:noinspection GroovyAccessibility
+plugins {
+    id 'fabric-loom' version '1.11.5'
+    id 'maven-publish'
+    id "com.hypherionmc.modutils.modpublisher" version "2.1.7"
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+loom {
+    splitEnvironmentSourceSets()
+
+    mods {
+        "locatorbarplus" {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.client
+        }
+    }
+
+    accessWidenerPath = file("src/main/resources/locatorbarplus.accesswidener")
+}
+
+fabricApi {
+    configureDataGeneration {
+        client = true
+    }
+}
+
+repositories {
+    maven { url "https://maven.shedaniel.me/" }
+    maven { url "https://maven.terraformersmc.com/releases/" }
+}
+
+dependencies {
+    // To change the versions see the gradle.properties file
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+    modApi("me.shedaniel.cloth:cloth-config-fabric:${project.cloth_config_version}") {
+        exclude(group: "net.fabricmc.fabric-api")
+    }
+
+    modApi "com.terraformersmc:modmenu:${project.modmenu_version}"
+}
+
+processResources {
+    inputs.property "version", project.version
+    inputs.property "minecraft_version", project.minecraft_version
+    inputs.property "loader_version", project.loader_version
+    filteringCharset "UTF-8"
+
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version,
+                "minecraft_version": project.minecraft_version,
+                "loader_version": project.loader_version,
+                "description": project.description,
+                "mod_name": project.mod_name
+    }
+}
+
+def targetJavaVersion = 21
+tasks.withType(JavaCompile).configureEach {
+    it.options.encoding = "UTF-8"
+    if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible()) {
+        it.options.release.set(targetJavaVersion)
+    }
+}
+
+java {
+    def javaVersion = JavaVersion.toVersion(targetJavaVersion)
+    if (JavaVersion.current() < javaVersion) {
+        toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
+    }
+    withSourcesJar()
+}
+
+jar {
+    inputs.property "archivesName", project.base.archivesName
+
+    from("LICENSE") {
+        rename { "${it}_${project.archivesBaseName}" }
+    }
+}
+
+// configure the maven publication
+publishing {
+    publications {
+        create("mavenJava", MavenPublication) {
+            artifactId = project.archives_base_name
+            from components.java
+        }
+    }
+
+    // See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
+    repositories {
+        // Add repositories to publish to here.
+        // Notice: This block does NOT have the same function as the block in the top level.
+        // The repositories here will be used for publishing your artifact, not for
+        // retrieving dependencies.
+    }
+}
+
+publisher {
+    apiKeys {
+        modrinth System.getenv("MODRINTH_TOKEN")
+    }
+    setDebug(true)
+    setModrinthID(project.modrinth_id)
+    setVersionType("beta")
+    setChangelog("changelog.md")
+    setProjectVersion("${project.minecraft_version}-${project.version}")
+    setDisplayName(mod_name)
+    setGameVersions(project.minecraft_version)
+    setLoaders("fabric")
+    setIsManualRelease(true)
+    setArtifact(jar)
+    setPlatformArtifact("modrinth", jar)
+    setDisableMalwareScanner(true)
+    setJavaVersions(JavaVersion.VERSION_21, 21)
+    setDisableEmptyJarCheck(true)
+
+    modrinthDepends {
+        required "fabric-api", "cloth-config"
+
+        optional "modmenu"
+    }
+}
