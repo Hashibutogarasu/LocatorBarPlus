@@ -106,6 +106,8 @@ publisher {
         modrinth System.getenv("MODRINTH_TOKEN")
         curseforge System.getenv("CURSEFORGE_API_TOKEN")
     }
+
+    setDisplayName("v${project.version} for ${project.minecraft_version}")
     setDebug(true)
     setModrinthID(project.modrinth_id)
     setCurseID(project.curseforge_id)
